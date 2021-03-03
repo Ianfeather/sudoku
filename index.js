@@ -6,7 +6,6 @@ function chunk (arr, len) {
   return chunks;
 }
 
-
 // no. 125
 const solved = [
   [3,1,6,7,8,9,5,2,4],
@@ -62,30 +61,20 @@ class Sudoku {
     }
     console.log('valid columns')
 
-
-    // [0,0 - > 3,3]
-    // [0,3 - > 3,6]
-    // [0,3 - > 3,9]
-    // [3,0 - > 6,3]
-    // [0,4 - > 3,6]
-    // [0,7 - > 3,9]
-    // Check minigrids are full and unique
+    // Check grids are full and unique
     const miniGrids = [];
     let chunks = chunk(this.grid.flat(), 3);
-
-    for (var i = 0; i < this.max; i++) {
+    [0,1,2,9,10,11,18,19,20].forEach(i => {
       let arr = [chunks[i], chunks[i+3], chunks[i+6]].flat();
       miniGrids.push(arr)
-    }
-    console.log("miniGrids")
-    console.log(miniGrids.forEach((mg => console.log(mg))))
+    });
     for (var i = 0; i < this.max; i++) {
       let miniGrid = new Set(miniGrids[i]);
       if (miniGrid.size !== 9) {
         return false;
       }
     }
-    console.log('valid minigrids')
+    console.log('valid grids')
 
     // All pass
     return true;
@@ -102,5 +91,4 @@ class Sudoku {
 }
 
 const sud = new Sudoku(solved);
-sud.print();
 console.log(sud.isValid());
