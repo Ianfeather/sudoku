@@ -31,18 +31,42 @@ const unsolved = [
   [1,5,null,3,null,null,null,7,null],
 ];
 
+class Cell {
+  constructor(value) {
+    this.values = value ? [value] : Array(9).fill(null).map((_, i) => i + 1)
+  }
+  get value() {
+    return this.values.length == 1 ? this.values[0] : null;
+  }
+}
+
 class Sudoku {
   min = 1;
   max = 9;
 
   constructor(initialValues) {
-    this.grid = initialValues || Array(9).fill(Array(9).fill(null).map((_, i) => i + 1));
+    const cell = (value) => ({
+      values: value ? [value] : Array(9).fill(null).map((_, i) => i + 1)
+    });
+    const emptyGrid = Array(9).fill(Array(9).fill(new Cell()));
+
+    if (!initialValues) {
+      this.grid = emptyGrid;
+    } else {
+      this.grid = initialValues.map(row =>  {
+        return row.map(c => new Cell(c));
+      })
+    }
   }
 
-  isValid () {
+  isCellValid (value, position) {
+
+  }
+
+  isGridValid () {
     // Check rows are full and unique
     for (var i = 0; i < this.max; i++) {
-      let row = new Set(this.grid[i]);
+      let row = new Set(this.grid[i].map(c => c.value));
       if (row.size !== 9) {
         return false;
       }
@@ -54,7 +78,7 @@ class Sudoku {
       for (var j = 0; j < this.max; j++) {
         arr.push(this.grid[j][i]);
       }
-      let column = new Set(arr);
+      let column = new Set(arr.map(c => c.value));
       if (column.size !== 9) {
         return false;
       }
@@ -69,7 +93,7 @@ class Sudoku {
       miniGrids.push(arr)
     });
     for (var i = 0; i < this.max; i++) {
-      let miniGrid = new Set(miniGrids[i]);
+      let miniGrid = new Set(miniGrids[i].map(c => c.value));
       if (miniGrid.size !== 9) {
         return false;
       }
@@ -83,12 +107,13 @@ class Sudoku {
   print () {
     let output = `-------------------------------------`;
     this.grid.forEach(row => {
-      output += `\n| ${row.join(' | ')} |`
+      output += `\n| ${row.map(c => c.value || 'X').join(' | ')} |`
     })
     output += `\n-------------------------------------`;
     console.log(output);
   }
 }
 
-const sud = new Sudoku(solved);
-console.log(sud.isValid());
+const sud = new Sudoku(unsolved);
+sud.print();
+console.log(sud.isGridValid());
