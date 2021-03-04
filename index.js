@@ -38,6 +38,12 @@ class Cell {
   get value() {
     return this.values.length == 1 ? this.values[0] : null;
   }
+  get solved() {
+    return this.values.length == 1;
+  }
+  setValues(values) {
+    this.values = values;
+  }
 }
 
 class Sudoku {
@@ -88,7 +94,7 @@ class Sudoku {
   }
 
   getGridVals(x,y) {
-    return this.getMiniGrids()[this.getGridIndex(x, y)].map(c => c.value)
+    return this.getMiniGrids()[this.getGridIndex(x, y)].map(c => c.value).filter(Boolean)
   }
 
   solveCell (cell, [x,y]) {
@@ -97,11 +103,24 @@ class Sudoku {
       ...this.getColumnVals(y),
       ...this.getGridVals(x, y)
     ]
-    return cell.values.filter(v => !excluded.includes(v))
+    let newPossibleValues = cell.values.filter(v => !excluded.includes(v))
+    cell.setValues(newPossibleValues)
+    return cell;
+  }
+
+  solve() {
+    // firstPassOnly
+    this.print();
+    this.grid.map((row, rowIndex) => {
+      return row.map((cell, columnIndex) => {
+        return cell.solved ? cell : this.solveCell(cell, [rowIndex, columnIndex]);
+      })
+    })
+    this.print();
   }
 
   isFirstValid() {
-    return this.solveCell(this.grid[8][8], [8,8])
+    return this.solveCell(this.grid[6][8], [6,8])
   }
 
   isGridValid () {
@@ -128,7 +147,7 @@ class Sudoku {
     console.log('valid columns')
 
     // Check grids are full and unique
-    const miniGrids = getMiniGrids();
+    const miniGrids = this.getMiniGrids();
     for (var i = 0; i < this.max; i++) {
       let miniGrid = new Set(miniGrids[i].map(c => c.value));
       if (miniGrid.size !== 9) {
