@@ -59,11 +59,53 @@ class Sudoku {
     }
   }
 
-  isCellValid (value, position) {
+  getRowVals(rowIndex) {
+    return this.grid[rowIndex].map(cell => cell.value).filter(Boolean)
+  }
 
+  getColumnVals(columnIndex) {
+    return this.grid.map(row => row[columnIndex].value).filter(Boolean)
+  }
+
+  getMiniGrids() {
+    let chunks = chunk(this.grid.flat(), 3);
+    return [0,1,2,9,10,11,18,19,20].map(i => {
+      return [chunks[i], chunks[i+3], chunks[i+6]].flat();
+    });
+  }
+
+  getGridIndex(rowIndex,columnIndex) {
+    if (rowIndex < 3) {
+      if (columnIndex < 3) return 0;
+      return columnIndex < 6 ? 1 : 2;
+    }
+    if (rowIndex < 6) {
+      if (columnIndex < 3) return 3;
+      return columnIndex < 6 ? 4 : 5;
+    }
+    if (columnIndex < 3) return 6;
+    return columnIndex < 6 ? 7 : 8;
+  }
+
+  getGridVals(x,y) {
+    return this.getMiniGrids()[this.getGridIndex(x, y)].map(c => c.value)
+  }
+
+  solveCell (cell, [x,y]) {
+    let excluded = [
+      ...this.getRowVals(x),
+      ...this.getColumnVals(y),
+      ...this.getGridVals(x, y)
+    ]
+    return cell.values.filter(v => !excluded.includes(v))
+  }
+
+  isFirstValid() {
+    return this.solveCell(this.grid[8][8], [8,8])
   }
 
   isGridValid () {
+    this.print();
     // Check rows are full and unique
     for (var i = 0; i < this.max; i++) {
       let row = new Set(this.grid[i].map(c => c.value));
@@ -86,12 +128,7 @@ class Sudoku {
     console.log('valid columns')
 
     // Check grids are full and unique
-    const miniGrids = [];
-    let chunks = chunk(this.grid.flat(), 3);
-    [0,1,2,9,10,11,18,19,20].forEach(i => {
-      let arr = [chunks[i], chunks[i+3], chunks[i+6]].flat();
-      miniGrids.push(arr)
-    });
+    const miniGrids = getMiniGrids();
     for (var i = 0; i < this.max; i++) {
       let miniGrid = new Set(miniGrids[i].map(c => c.value));
       if (miniGrid.size !== 9) {
@@ -115,5 +152,4 @@ class Sudoku {
 }
 
 const sud = new Sudoku(unsolved);
-sud.print();
-console.log(sud.isGridValid());
+console.log(sud.isFirstValid());
