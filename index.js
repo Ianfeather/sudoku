@@ -1,3 +1,10 @@
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
 function chunk (arr, len) {
   var chunks = [], i = 0, n = arr.length;
   while (i < n) {
@@ -5,19 +12,6 @@ function chunk (arr, len) {
   }
   return chunks;
 }
-
-// no. 125
-const solved = [
-  [3,1,6,7,8,9,5,2,4],
-  [9,7,2,4,6,5,1,3,8],
-  [5,8,4,2,1,3,6,9,7],
-  [4,9,7,5,2,1,3,8,6],
-  [6,2,1,9,3,8,7,4,5],
-  [8,3,5,6,7,4,2,1,9],
-  [7,6,9,1,4,2,8,5,3],
-  [2,4,3,8,5,7,9,6,1],
-  [1,5,8,3,9,6,4,7,2]
-];
 
 const unsolved = [
   [null,null,6,null,null,9,null,2,4],
@@ -31,28 +25,42 @@ const unsolved = [
   [1,5,null,3,null,null,null,7,null],
 ];
 
+const unsolvedEasy = [
+  [6,3, null,null,null,null,7,null,null],
+  [4,2,null,null,null,null,null,5,null],
+  [null,null,7,null,null,null,1,null,4],
+  [null,null,6,5,null,null,null,null,null],
+  [3,1,null,8,null,null,null,null,null],
+  [null,8,null,null,3,4,null,null,null],
+  [7,6,null,null,null,5,9,null,null],
+  [null,null,5,1,4,null,null,6,7],
+  [null,null,8,null,9,null,null,2,3]
+];
+
 class Cell {
   constructor(value) {
     this.values = value ? [value] : Array(9).fill(null).map((_, i) => i + 1)
-  }
-  get solved() {
-    return this.values.length == 1;
-  }
-  get value() {
-    return this.values[0]
+    this.value = null;
+    this.solved = false;
   }
   setValues(values) {
     this.values = values;
+    if (values.length == 1) {
+      this.value = values[0];
+      this.solved = true;
+    }
   }
   setValue(value) {
     this.value = value;
   }
+  reset() {
+    if (!this.solved) {
+      this.value = null;
+    }
+  }
 }
 
 class Sudoku {
-  min = 1;
-  max = 9;
-
   constructor(initialValues) {
     const emptyGrid = Array(9).fill(Array(9).fill(new Cell()));
 
@@ -66,14 +74,15 @@ class Sudoku {
   }
 
   getRowVals(rowIndex) {
-    return this.grid[rowIndex].map(cell => cell.solved ? cell.value : null).filter(Boolean)
+    // return this.grid[rowIndex].map(cell => cell.solved ? cell.value : null).filter(Boolean)
+    return this.grid[rowIndex].map(cell => cell.value).filter(Boolean)
   }
 
   getColumnVals(columnIndex) {
-    return this.grid.map(row => row[columnIndex].solved ? row[columnIndex].value : null).filter(Boolean)
+    return this.grid.map(row => row[columnIndex].value).filter(Boolean)
+    // return this.grid.map(row => row[columnIndex].solved ? row[columnIndex].value : null).filter(Boolean)
   }
 
-  getMiniGrids() {
     let chunks = chunk(this.grid.flat(), 3);
     return [0,1,2,9,10,11,18,19,20].map(i => {
       return [chunks[i], chunks[i+3], chunks[i+6]].flat();
@@ -94,17 +103,24 @@ class Sudoku {
   }
 
   getGridVals(x,y) {
-    return this.getMiniGrids()[this.getGridIndex(x, y)].map(c => c.solved ? c.value : null).filter(Boolean)
   }
 
-  solveCell (cell, [x,y]) {
+  solveCell (cell, [x,y], { randomize = false } = {}) {
     let excluded = [
       ...this.getRowVals(x),
       ...this.getColumnVals(y),
       ...this.getGridVals(x, y)
     ]
     let newPossibleValues = cell.values.filter(v => !excluded.includes(v))
-    cell.setValues(newPossibleValues)
+    if (!newPossibleValues.length) {
+      throw new Error('failed attempt');
+    }
+    if (randomize) {
+      shuffle(newPossibleValues);
+      cell.setValue(newPossibleValues[0])
+    } else {
+      cell.setValues(newPossibleValues)
+    }
 
     return cell;
   }
@@ -112,27 +128,61 @@ class Sudoku {
   solve() {
     this.print();
     let i = 0;
-    let possibles = this.grid.map(row => row.map(cell => cell.values.length)).flat().reduce((acc, next) => acc + next)
-    while (possibles > 81 && i < 1) {
-      this.grid = this.grid.map((row, rowIndex) => {
-        return row.map((cell, columnIndex) => {
-          return cell.solved ? cell : this.solveCell(cell, [rowIndex, columnIndex]);
-        })
-      })
-      possibles = this.grid.map(row => row.map(cell => cell.values.length)).flat().reduce((acc, next) => acc + next)
-      i++
+
+    // let it run through a couple of times and solve the obvious ones
+    for (var j = 0; j < 3; j++) {
+      this.grid = this.grid.map((row, rowIndex) => row.map((cell, columnIndex) => cell.solved ? cell : this.solveCell(cell, [rowIndex, columnIndex])));
     }
-    console.log(this.isGridValid())
-    this.print()
+
+    this.print();
+
+    let highestValue = 0;
+    let bestSolution = null;
+    // Brute force the rest
+    while (i < 10000000) {
+      try {
+        i++
+        this.grid = this.grid.map((row, rowIndex) => {
+          return row.map((cell, columnIndex) => {
+            return cell.solved ? cell : this.solveCell(cell, [rowIndex, columnIndex], { randomize: true })
+          })
+        })
+
+        if (this.isGridValid()) {
+          console.log(`valid in ${i} attempts`)
+          this.print({ showUnsolved: true });
+          break;
+        }
+
+      } catch (e) {
+        let valueCount = this.grid.map(row => row.filter(cell => !!cell.value)).flat().length;
+        if (valueCount > highestValue) {
+          highestValue = valueCount;
+          bestSolution = [...this.grid.map(row => [...row])]
+        }
+        if (i % 100000 === 0) {
+          console.log(`${i}, ${highestValue}`);
+          this.print({ showUnsolved: true, grid: bestSolution })
+        }
+        this.grid.forEach(row => row.forEach(cell => cell.reset()))
+      }
+    }
+    console.log(`Best effort: ${highestValue}`);
+    this.print({ showUnsolved: true, grid: bestSolution })
   }
 
   isFirstValid() {
-    return this.solveCell(this.grid[6][8], [6,8])
+    return this.solveCell(this.grid[4][8], [4,8])
+  }
+
+  isValid() {
+    const solvedItems = this.grid.map(row => row.filter(cell => cell.solved)).flat().length;
+    return solvedItems == 81;
   }
 
   isGridValid () {
     // Check rows are full and unique
-    for (var i = 0; i < this.max; i++) {
+    for (var i = 0; i < 9; i++) {
       let row = new Set(this.grid[i].map(c => c.value));
       if (row.size !== 9) {
         return false;
@@ -140,9 +190,9 @@ class Sudoku {
     }
     console.log('valid rows')
     // Check columns are full and unique
-    for (var i = 0; i < this.max; i++) {
+    for (var i = 0; i < 9; i++) {
       let arr = [];
-      for (var j = 0; j < this.max; j++) {
+      for (var j = 0; j < 9; j++) {
         arr.push(this.grid[j][i]);
       }
       let column = new Set(arr.map(c => c.value));
@@ -153,10 +203,7 @@ class Sudoku {
     console.log('valid columns')
 
     // Check grids are full and unique
-    const miniGrids = this.getMiniGrids();
-    for (var i = 0; i < this.max; i++) {
-      let miniGrid = new Set(miniGrids[i].map(c => c.value));
-      if (miniGrid.size !== 9) {
+    for (var i = 0; i < 9; i++) {
         return false;
       }
     }
@@ -166,15 +213,16 @@ class Sudoku {
     return true;
   }
 
-  print () {
+  print ({ showUnsolved = false, grid } = {}) {
     let output = `-------------------------------------`;
-    this.grid.forEach(row => {
-      output += `\n| ${row.map(c => c.solved ? c.value : 'X').join(' | ')} |`
+    (grid || this.grid).forEach(row => {
+      output += `\n| ${row.map(c => (c.solved || showUnsolved) ? c.value : 'X').join(' | ')} |`
     })
     output += `\n-------------------------------------`;
     console.log(output);
   }
 }
 
-const sud = new Sudoku(unsolved);
+const sud = new Sudoku(unsolvedEasy);
 console.log(sud.solve());
+// console.log(sud.isFirstValid().values);
