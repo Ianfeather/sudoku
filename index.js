@@ -2,49 +2,6 @@
 // Every time it fails it starts again.
 // Just a learning experiment to see how a brute force approach can be written
 
-function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-}
-
-const hard = [
-  [null,null,6,null,null,9,null,2,4],
-  [null,null,2,null,null,null,null,null,8],
-  [5,8,null,null,1,null,6,null,null],
-  [null,null,null,5,null,null,null,null,6],
-  [null,null,1,null,null,null,null,null,null],
-  [8,null,null,null,null,null,2,1,null],
-  [null,null,9,null,null,2,8,5,null],
-  [2,null,null,null,null,7,9,null,1],
-  [1,5,null,3,null,null,null,7,null],
-];
-
-const middle = [
-  [5, null, 4, null, 8, null,null,null,null],
-  [null,7,null,2,5,null,null,null,null],
-  [null,null,null,null,null,3,null,null,null],
-  [null,null,1,null,null,6,5,null,null],
-  [null,6,null,1,7,null,null,3,4],
-  [null,4,5,null,9,null,null,2,null],
-  [2,null,null,9,null,1,null,null,8],
-  [null,null,null,8,6,null,null,9,null],
-  [null,null,7,null,null,null,null,null,1]
-];
-
-const easy = [
-  [6,3, null,null,null,null,7,null,null],
-  [4,2,null,null,null,null,null,5,null],
-  [null,null,7,null,null,null,1,null,4],
-  [null,null,6,5,null,null,null,null,null],
-  [3,1,null,8,null,null,null,null,null],
-  [null,8,null,null,3,4,null,null,null],
-  [7,6,null,null,null,5,9,null,null],
-  [null,null,5,1,4,null,null,6,7],
-  [null,null,8,null,9,null,null,2,3]
-];
-
 class Cell {
   constructor(value) {
     this.values = value ? [value] : Array(9).fill(null).map((_, i) => i + 1)
@@ -110,8 +67,7 @@ class Sudoku {
       throw new Error('failed attempt');
     }
     if (randomize) {
-      shuffle(newPossibleValues);
-      cell.setValue(newPossibleValues[0])
+      cell.setValue(newPossibleValues[Math.floor(Math.random() * newPossibleValues.length)])
     } else {
       cell.setValues(newPossibleValues)
     }
@@ -167,6 +123,43 @@ class Sudoku {
     console.log(output);
   }
 }
+
+
+const hard = [
+  [null,null,6,null,null,9,null,2,4],
+  [null,null,2,null,null,null,null,null,8],
+  [5,8,null,null,1,null,6,null,null],
+  [null,null,null,5,null,null,null,null,6],
+  [null,null,1,null,null,null,null,null,null],
+  [8,null,null,null,null,null,2,1,null],
+  [null,null,9,null,null,2,8,5,null],
+  [2,null,null,null,null,7,9,null,1],
+  [1,5,null,3,null,null,null,7,null],
+];
+
+const middle = [
+  [5, null, 4, null, 8, null,null,null,null],
+  [null,7,null,2,5,null,null,null,null],
+  [null,null,null,null,null,3,null,null,null],
+  [null,null,1,null,null,6,5,null,null],
+  [null,6,null,1,7,null,null,3,4],
+  [null,4,5,null,9,null,null,2,null],
+  [2,null,null,9,null,1,null,null,8],
+  [null,null,null,8,6,null,null,9,null],
+  [null,null,7,null,null,null,null,null,1]
+];
+
+const easy = [
+  [6,3, null,null,null,null,7,null,null],
+  [4,2,null,null,null,null,null,5,null],
+  [null,null,7,null,null,null,1,null,4],
+  [null,null,6,5,null,null,null,null,null],
+  [3,1,null,8,null,null,null,null,null],
+  [null,8,null,null,3,4,null,null,null],
+  [7,6,null,null,null,5,9,null,null],
+  [null,null,5,1,4,null,null,6,7],
+  [null,null,8,null,9,null,null,2,3]
+];
 
 const sud = new Sudoku(middle);
 sud.solve();
