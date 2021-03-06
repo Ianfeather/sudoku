@@ -1,3 +1,7 @@
+// A very inefficient brute force sudoku solver
+// Every time it fails it starts again.
+// Just a learning experiment to see how a brute force approach can be written
+
 function shuffle(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -5,15 +9,7 @@ function shuffle(array) {
   }
 }
 
-function chunk (arr, len) {
-  var chunks = [], i = 0, n = arr.length;
-  while (i < n) {
-    chunks.push(arr.slice(i, i += len));
-  }
-  return chunks;
-}
-
-const unsolved = [
+const hard = [
   [null,null,6,null,null,9,null,2,4],
   [null,null,2,null,null,null,null,null,8],
   [5,8,null,null,1,null,6,null,null],
@@ -25,7 +21,19 @@ const unsolved = [
   [1,5,null,3,null,null,null,7,null],
 ];
 
-const unsolvedEasy = [
+const middle = [
+  [5, null, 4, null, 8, null,null,null,null],
+  [null,7,null,2,5,null,null,null,null],
+  [null,null,null,null,null,3,null,null,null],
+  [null,null,1,null,null,6,5,null,null],
+  [null,6,null,1,7,null,null,3,4],
+  [null,4,5,null,9,null,null,2,null],
+  [2,null,null,9,null,1,null,null,8],
+  [null,null,null,8,6,null,null,9,null],
+  [null,null,7,null,null,null,null,null,1]
+];
+
+const easy = [
   [6,3, null,null,null,null,7,null,null],
   [4,2,null,null,null,null,null,5,null],
   [null,null,7,null,null,null,1,null,4],
@@ -71,35 +79,23 @@ class Sudoku {
   }
 
   getRowVals(rowIndex) {
-    return this.grid[rowIndex].map(cell => cell.value).filter(Boolean)
+    return this.grid[rowIndex]
   }
 
   getColumnVals(columnIndex) {
-    return this.grid.map(row => row[columnIndex].value).filter(Boolean)
+    return this.grid.map(row => row[columnIndex])
   }
 
-  getMiniGrids() {
-    let chunks = chunk(this.grid.flat(), 3);
-    return [0,1,2,9,10,11,18,19,20].map(i => {
-      return [chunks[i], chunks[i+3], chunks[i+6]].flat();
-    });
-  }
-
-  getGridIndex(rowIndex,columnIndex) {
-    if (rowIndex < 3) {
-      if (columnIndex < 3) return 0;
-      return columnIndex < 6 ? 1 : 2;
-    }
-    if (rowIndex < 6) {
-      if (columnIndex < 3) return 3;
-      return columnIndex < 6 ? 4 : 5;
-    }
-    if (columnIndex < 3) return 6;
-    return columnIndex < 6 ? 7 : 8;
-  }
-
-  getGridVals(x,y) {
-    return this.getMiniGrids()[this.getGridIndex(x, y)].map(c => c.value).filter(Boolean);
+  getGridVals(x, y) {
+    let vals = [];
+    this.grid.forEach((row, rowIndex) => {
+      row.forEach((cell, columnIndex) => {
+        if (Math.ceil((rowIndex + 1) / 3) === Math.ceil((x + 1) / 3) && Math.ceil((columnIndex + 1) / 3) === Math.ceil((y+1)/3)) {
+          vals.push(cell)
+        }
+      })
+    })
+    return vals;
   }
 
   solveCell (cell, [x,y], { randomize = false } = {}) {
@@ -107,7 +103,8 @@ class Sudoku {
       ...this.getRowVals(x),
       ...this.getColumnVals(y),
       ...this.getGridVals(x, y)
-    ]
+    ].map(c => c.value).filter(Boolean);
+
     let newPossibleValues = cell.values.filter(v => !excluded.includes(v))
     if (!newPossibleValues.length) {
       throw new Error('failed attempt');
@@ -140,9 +137,7 @@ class Sudoku {
           return cell.solved ? cell : this.solveCell(cell, [rowIndex, columnIndex], { randomize: true })
         }))
 
-        if (this.isGridValid()) {
-          break;
-        }
+        break;
 
       } catch (e) {
         let valueCount = this.grid.map(row => row.filter(cell => !!cell.value)).flat().length;
@@ -152,52 +147,15 @@ class Sudoku {
         if (i % 100000 === 0) {
           let diff = (new Date() - startTime) / 1000
           console.log(`${i}, ${highestValue}, ${diff} seconds`);
-
+          console.log(`${(i / diff).toFixed(2)} attempts per second`);
         }
         this.grid.forEach(row => row.forEach(cell => cell.reset()))
       }
     }
-    let diff = (new Date() - startTime) / 1000
+    let diff = (new Date() - startTime) / 1000;
     console.log(`valid in ${i} attempts in ${diff} seconds`);
+    console.log(`${(i / diff).toFixed(2)} attempts per second`);
     this.print({ showUnsolved: true })
-  }
-
-  isValid() {
-    const solvedItems = this.grid.map(row => row.filter(cell => cell.solved)).flat().length;
-    return solvedItems == 81;
-  }
-
-  isGridValid () {
-    // Check rows are full and unique
-    for (var i = 0; i < 9; i++) {
-      let row = new Set(this.grid[i].map(c => c.value));
-      if (row.size !== 9) {
-        return false;
-      }
-    }
-    // Check columns are full and unique
-    for (var i = 0; i < 9; i++) {
-      let arr = [];
-      for (var j = 0; j < 9; j++) {
-        arr.push(this.grid[j][i]);
-      }
-      let column = new Set(arr.map(c => c.value));
-      if (column.size !== 9) {
-        return false;
-      }
-    }
-
-    // Check grids are full and unique
-    const miniGrids = this.getMiniGrids();
-    for (var i = 0; i < 9; i++) {
-      let miniGrid = new Set(miniGrids[i].map(c => c.value));
-      if (miniGrid.size !== 9) {
-        return false;
-      }
-    }
-
-    // All pass
-    return true;
   }
 
   print ({ showUnsolved = false } = {}) {
@@ -210,5 +168,5 @@ class Sudoku {
   }
 }
 
-const sud = new Sudoku(unsolved);
-console.log(sud.solve());
+const sud = new Sudoku(middle);
+sud.solve();
