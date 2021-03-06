@@ -62,27 +62,23 @@ class Cell {
 
 class Sudoku {
   constructor(initialValues) {
-    const emptyGrid = Array(9).fill(Array(9).fill(new Cell()));
-
     if (!initialValues) {
-      this.grid = emptyGrid;
-    } else {
-      this.grid = initialValues.map(row =>  {
-        return row.map(c => new Cell(c));
-      })
+      throw new Error('Feed me a starting grid')
     }
+    this.grid = initialValues.map(row =>  {
+      return row.map(c => new Cell(c));
+    });
   }
 
   getRowVals(rowIndex) {
-    // return this.grid[rowIndex].map(cell => cell.solved ? cell.value : null).filter(Boolean)
     return this.grid[rowIndex].map(cell => cell.value).filter(Boolean)
   }
 
   getColumnVals(columnIndex) {
     return this.grid.map(row => row[columnIndex].value).filter(Boolean)
-    // return this.grid.map(row => row[columnIndex].solved ? row[columnIndex].value : null).filter(Boolean)
   }
 
+  getMiniGrids() {
     let chunks = chunk(this.grid.flat(), 3);
     return [0,1,2,9,10,11,18,19,20].map(i => {
       return [chunks[i], chunks[i+3], chunks[i+6]].flat();
@@ -103,6 +99,7 @@ class Sudoku {
   }
 
   getGridVals(x,y) {
+    return this.getMiniGrids()[this.getGridIndex(x, y)].map(c => c.value).filter(Boolean);
   }
 
   solveCell (cell, [x,y], { randomize = false } = {}) {
@@ -126,31 +123,24 @@ class Sudoku {
   }
 
   solve() {
-    this.print();
-    let i = 0;
-
-    // let it run through a couple of times and solve the obvious ones
+    // let it run through a few times and solve the obvious ones
     for (var j = 0; j < 3; j++) {
       this.grid = this.grid.map((row, rowIndex) => row.map((cell, columnIndex) => cell.solved ? cell : this.solveCell(cell, [rowIndex, columnIndex])));
     }
 
-    this.print();
-
     let highestValue = 0;
-    let bestSolution = null;
+
     // Brute force the rest
-    while (i < 10000000) {
+    var i = 0;
+    let startTime = new Date();
+    while (true) {
+      i++;
       try {
-        i++
-        this.grid = this.grid.map((row, rowIndex) => {
-          return row.map((cell, columnIndex) => {
-            return cell.solved ? cell : this.solveCell(cell, [rowIndex, columnIndex], { randomize: true })
-          })
-        })
+        this.grid = this.grid.map((row, rowIndex) => row.map((cell, columnIndex) => {
+          return cell.solved ? cell : this.solveCell(cell, [rowIndex, columnIndex], { randomize: true })
+        }))
 
         if (this.isGridValid()) {
-          console.log(`valid in ${i} attempts`)
-          this.print({ showUnsolved: true });
           break;
         }
 
@@ -158,21 +148,18 @@ class Sudoku {
         let valueCount = this.grid.map(row => row.filter(cell => !!cell.value)).flat().length;
         if (valueCount > highestValue) {
           highestValue = valueCount;
-          bestSolution = [...this.grid.map(row => [...row])]
         }
         if (i % 100000 === 0) {
-          console.log(`${i}, ${highestValue}`);
-          this.print({ showUnsolved: true, grid: bestSolution })
+          let diff = (new Date() - startTime) / 1000
+          console.log(`${i}, ${highestValue}, ${diff} seconds`);
+
         }
         this.grid.forEach(row => row.forEach(cell => cell.reset()))
       }
     }
-    console.log(`Best effort: ${highestValue}`);
-    this.print({ showUnsolved: true, grid: bestSolution })
-  }
-
-  isFirstValid() {
-    return this.solveCell(this.grid[4][8], [4,8])
+    let diff = (new Date() - startTime) / 1000
+    console.log(`valid in ${i} attempts in ${diff} seconds`);
+    this.print({ showUnsolved: true })
   }
 
   isValid() {
@@ -188,7 +175,6 @@ class Sudoku {
         return false;
       }
     }
-    console.log('valid rows')
     // Check columns are full and unique
     for (var i = 0; i < 9; i++) {
       let arr = [];
@@ -200,22 +186,23 @@ class Sudoku {
         return false;
       }
     }
-    console.log('valid columns')
 
     // Check grids are full and unique
+    const miniGrids = this.getMiniGrids();
     for (var i = 0; i < 9; i++) {
+      let miniGrid = new Set(miniGrids[i].map(c => c.value));
+      if (miniGrid.size !== 9) {
         return false;
       }
     }
-    console.log('valid grids')
 
     // All pass
     return true;
   }
 
-  print ({ showUnsolved = false, grid } = {}) {
+  print ({ showUnsolved = false } = {}) {
     let output = `-------------------------------------`;
-    (grid || this.grid).forEach(row => {
+    this.grid.forEach(row => {
       output += `\n| ${row.map(c => (c.solved || showUnsolved) ? c.value : 'X').join(' | ')} |`
     })
     output += `\n-------------------------------------`;
@@ -223,6 +210,5 @@ class Sudoku {
   }
 }
 
-const sud = new Sudoku(unsolvedEasy);
+const sud = new Sudoku(unsolved);
 console.log(sud.solve());
-// console.log(sud.isFirstValid().values);
